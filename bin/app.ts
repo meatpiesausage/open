@@ -18,17 +18,3 @@ new NodejsFargateStack(app, 'NodejsFargateDevStack', {
     region: process.env.CDK_DEFAULT_REGION || 'eu-west-2',
   },
 });
-
-// Production environment stack (optional)
-new NodejsFargateStack(app, 'NodejsFargateProdStack', {
-  appName: 'nodejs-fargate-app',
-  environment: 'prod',
-  containerPort: 3000,
-  desiredCount: 4,
-  cpu: 512,
-  memory: 1024,
-  env: {
-    account: process.env.CDK_DEFAULT_ACCOUNT,
-    region: process.env.CDK_DEFAULT_REGION || 'eu-west-2',
-  },
-});
