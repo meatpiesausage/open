@@ -2,6 +2,7 @@ import * as cdk from 'aws-cdk-lib';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as ecs from 'aws-cdk-lib/aws-ecs';
 import * as ecsPatterns from 'aws-cdk-lib/aws-ecs-patterns';
+import * as logs from 'aws-cdk-lib/aws-logs';
 import { Construct } from 'constructs';
 
 interface NodejsFargateStackProps extends cdk.StackProps {
@@ -54,7 +55,12 @@ export class NodejsFargateStack extends cdk.Stack {
       containerInsights: true,
     });
 
-
+    // Create CloudWatch Log Group
+    const logGroup = new logs.LogGroup(this, 'LogGroup', {
+      logGroupName: `/ecs/${appName}`,
+      retention: logs.RetentionDays.TWO_WEEKS,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+    });
 
     // Create Fargate Service with Application Load Balancer
     // This pattern automatically creates ECR repo, builds image, ALB, target group, etc.
@@ -69,6 +75,10 @@ export class NodejsFargateStack extends cdk.Stack {
         }),
         containerName: appName,
         containerPort: containerPort,
+        logDriver: ecs.LogDrivers.awsLogs({
+          streamPrefix: 'ecs',
+          logGroup: logGroup,
+        }),
         environment: {
           NODE_ENV: 'production',
           PORT: containerPort.toString(),

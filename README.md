@@ -9,6 +9,8 @@ https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html
 msiexec.exe /i https://awscli.amazonaws.com/AWSCLIV2.msi
 
 
+## Install Docker 
+https://docs.docker.com/desktop/setup/install/windows-install/
 
 # Install CDK globally
 npm install -g aws-cdk
@@ -61,6 +63,9 @@ NodejsFargateDevStack.FargateServiceServiceURL47701F45 = http://Nodejs-Farga-VjT
 NodejsFargateDevStack.LoadBalancerDNS = Nodejs-Farga-VjTIJGWmsfLc-636969047.eu-west-2.elb.amazonaws.com
 NodejsFargateDevStack.LoadBalancerURL = http://Nodejs-Farga-VjTIJGWmsfLc-636969047.eu-west-2.elb.amazonaws.com
 NodejsFargateDevStack.ServiceName = nodejs-fargate-app-service
+
+
+15:26 - Started.
 
 
 
