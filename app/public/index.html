@@ -1,5 +1,386 @@
-<html>
-    <body>
-        Hello
-    </body>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Maze Navigator</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+        #container {
+            width: 100vw;
+            height: 100vh;
+        }
+        #ui {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            z-index: 100;
+            background: rgba(0,0,0,0.7);
+            padding: 10px;
+            border-radius: 5px;
+        }
+        #victory {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #00ff00;
+            font-size: 2em;
+            text-align: center;
+            background: rgba(0,0,0,0.8);
+            padding: 20px;
+            border-radius: 10px;
+            display: none;
+            z-index: 200;
+        }
+        #controls {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            z-index: 100;
+        }
+        .control-btn {
+            background: rgba(255,255,255,0.8);
+            border: 2px solid #333;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.1s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .control-btn:hover {
+            background: rgba(255,255,255,1);
+            transform: scale(1.05);
+        }
+        .control-btn:active {
+            background: rgba(200,200,255,1);
+            transform: scale(0.95);
+        }
+        #up-btn {
+            width: 50px;
+            height: 50px;
+            margin: 0 auto 5px auto;
+        }
+        #down-btn {
+            width: 50px;
+            height: 50px;
+            margin: 5px auto 0 auto;
+        }
+        #left-btn, #right-btn {
+            width: 50px;
+            height: 50px;
+            display: inline-block;
+        }
+        #left-btn {
+            margin-right: 5px;
+        }
+        #right-btn {
+            margin-left: 5px;
+        }
+        .control-row {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+    <div id="container"></div>
+    <div id="ui">
+        <div>Use Arrow Keys to Navigate</div>
+        <div>Find the EXIT (F) from START (S)</div>
+        <div id="position">Position: (0, 0)</div>
+    </div>
+    <div id="victory">
+        <div>🎉 CONGRATULATIONS! 🎉</div>
+        <div>You found the exit!</div>
+        <div style="font-size: 0.6em; margin-top: 10px;">Press R to restart</div>
+    </div>
+    <div id="controls">
+        <div class="control-btn" id="up-btn">↑</div>
+        <div class="control-row">
+            <div class="control-btn" id="left-btn">←</div>
+            <div class="control-btn" id="right-btn">→</div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // Scene setup
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setClearColor(0x87CEEB); // Sky blue
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        document.getElementById('container').appendChild(renderer.domElement);
+
+        // Maze layout based on the drawing
+        // 1 = wall, 0 = path, S = start, F = finish
+        const maze = [
+            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,'F',1],
+            [1,0,1,1,1,1,1,0,1,1,1,1,1,0,1],
+            [1,0,1,0,0,0,0,0,0,0,0,0,1,0,1],
+            [1,0,1,0,1,1,1,1,1,1,1,0,1,0,1],
+            [1,0,0,0,0,0,0,0,0,0,0,0,1,0,1],
+            [1,1,1,0,1,1,1,1,1,1,1,1,1,0,1],
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+            [1,0,1,1,1,1,1,1,1,1,1,1,1,1,1],
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+            [1,1,1,1,1,0,1,1,1,1,1,1,1,0,1],
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+            [1,0,1,1,1,1,1,1,1,1,1,1,1,'S',1],
+            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+        ];
+
+        const WALL_HEIGHT = 3;
+        const CELL_SIZE = 2;
+        let playerX = 13; // Start position X
+        let playerZ = 12; // Start position Z
+        let playerRotation = 0; // Camera rotation in radians
+        const finishX = 13;
+        const finishZ = 1;
+        let hasWon = false;
+
+        // Materials
+        const wallMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
+        const floorMaterial = new THREE.MeshLambertMaterial({ color: 0x90EE90 });
+        const startMaterial = new THREE.MeshLambertMaterial({ color: 0x00FF00 });
+        const finishMaterial = new THREE.MeshLambertMaterial({ color: 0xFF0000 });
+
+        // Create maze geometry
+        function createMaze() {
+            // Floor
+            const floorGeometry = new THREE.PlaneGeometry(maze[0].length * CELL_SIZE, maze.length * CELL_SIZE);
+            const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+            floor.rotation.x = -Math.PI / 2;
+            floor.position.y = 0;
+            floor.position.x = (maze[0].length * CELL_SIZE) / 2 - CELL_SIZE / 2;
+            floor.position.z = (maze.length * CELL_SIZE) / 2 - CELL_SIZE / 2;
+            floor.receiveShadow = true;
+            scene.add(floor);
+
+            // Walls
+            for (let row = 0; row < maze.length; row++) {
+                for (let col = 0; col < maze[row].length; col++) {
+                    const x = col * CELL_SIZE;
+                    const z = row * CELL_SIZE;
+
+                    if (maze[row][col] === 1) {
+                        const wallGeometry = new THREE.BoxGeometry(CELL_SIZE, WALL_HEIGHT, CELL_SIZE);
+                        const wall = new THREE.Mesh(wallGeometry, wallMaterial);
+                        wall.position.set(x, WALL_HEIGHT / 2, z);
+                        wall.castShadow = true;
+                        scene.add(wall);
+                    } else if (maze[row][col] === 'S') {
+                        // Start marker
+                        const startGeometry = new THREE.CylinderGeometry(0.3, 0.3, 0.1);
+                        const startMarker = new THREE.Mesh(startGeometry, startMaterial);
+                        startMarker.position.set(x, 0.05, z);
+                        scene.add(startMarker);
+                    } else if (maze[row][col] === 'F') {
+                        // Finish marker
+                        const finishGeometry = new THREE.CylinderGeometry(0.3, 0.3, 0.1);
+                        const finishMarker = new THREE.Mesh(finishGeometry, finishMaterial);
+                        finishMarker.position.set(x, 0.05, z);
+                        scene.add(finishMarker);
+                    }
+                }
+            }
+        }
+
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(10, 10, 5);
+        directionalLight.castShadow = true;
+        directionalLight.shadow.mapSize.width = 2048;
+        directionalLight.shadow.mapSize.height = 2048;
+        scene.add(directionalLight);
+
+        // Camera setup
+        camera.position.y = 1.6; // Eye level
+        updateCameraPosition();
+
+        function updateCameraPosition() {
+            camera.position.x = playerX * CELL_SIZE;
+            camera.position.z = playerZ * CELL_SIZE;
+            camera.rotation.y = playerRotation;
+            document.getElementById('position').textContent = `Position: (${playerX}, ${playerZ}) Facing: ${getFacingDirection()}`;
+        }
+
+        function getFacingDirection() {
+            const angle = ((playerRotation * 180 / Math.PI) % 360 + 360) % 360;
+            if (angle < 45 || angle >= 315) return "North";
+            if (angle >= 45 && angle < 135) return "East";
+            if (angle >= 135 && angle < 225) return "South";
+            return "West";
+        }
+
+        // Collision detection
+        function canMoveTo(newX, newZ) {
+            if (newX < 0 || newX >= maze[0].length || newZ < 0 || newZ >= maze.length) {
+                return false;
+            }
+            return maze[newZ][newX] !== 1;
+        }
+
+        // Check for victory
+        function checkVictory() {
+            if (playerX === finishX && playerZ === finishZ && !hasWon) {
+                hasWon = true;
+                document.getElementById('victory').style.display = 'block';
+            }
+        }
+
+        // Movement
+        const keys = {
+            ArrowUp: false,
+            ArrowDown: false,
+            ArrowLeft: false,
+            ArrowRight: false
+        };
+
+        let lastKeyTime = 0;
+        const KEY_DELAY = 200; // Milliseconds between key presses
+
+        document.addEventListener('keydown', (event) => {
+            if (hasWon && event.key.toLowerCase() === 'r') {
+                // Restart
+                playerX = 13;
+                playerZ = 12;
+                playerRotation = 0;
+                hasWon = false;
+                document.getElementById('victory').style.display = 'none';
+                updateCameraPosition();
+                return;
+            }
+
+            if (hasWon) return;
+
+            const now = Date.now();
+            if (now - lastKeyTime < KEY_DELAY) return;
+
+            switch(event.code) {
+                case 'ArrowUp':
+                    // Move forward in the direction the camera is facing
+                    const newX = playerX + Math.round(Math.sin(playerRotation));
+                    const newZ = playerZ - Math.round(Math.cos(playerRotation));
+                    
+                    if (canMoveTo(newX, newZ)) {
+                        playerX = newX;
+                        playerZ = newZ;
+                        updateCameraPosition();
+                        checkVictory();
+                        lastKeyTime = now;
+                    }
+                    break;
+                case 'ArrowLeft':
+                    // Turn left (rotate camera)
+                    playerRotation += Math.PI / 2; // 90 degrees left
+                    updateCameraPosition();
+                    lastKeyTime = now;
+                    break;
+                case 'ArrowRight':
+                    // Turn right (rotate camera)
+                    playerRotation -= Math.PI / 2; // 90 degrees right
+                    updateCameraPosition();
+                    lastKeyTime = now;
+                    break;
+            }
+        });
+
+        // Touch/click controls
+        let lastMoveTime = 0;
+        const MOVE_DELAY = 200; // Milliseconds between moves
+
+        function singleMove(direction) {
+            const now = Date.now();
+            if (now - lastMoveTime < MOVE_DELAY || hasWon) return;
+            
+            switch(direction) {
+                case 'up':
+                    const newX = playerX + Math.round(Math.sin(playerRotation));
+                    const newZ = playerZ - Math.round(Math.cos(playerRotation));
+                    
+                    if (canMoveTo(newX, newZ)) {
+                        playerX = newX;
+                        playerZ = newZ;
+                        updateCameraPosition();
+                        checkVictory();
+                        lastMoveTime = now;
+                    }
+                    break;
+                case 'left':
+                    playerRotation += Math.PI / 2; // 90 degrees left
+                    updateCameraPosition();
+                    lastMoveTime = now;
+                    break;
+                case 'right':
+                    playerRotation -= Math.PI / 2; // 90 degrees right
+                    updateCameraPosition();
+                    lastMoveTime = now;
+                    break;
+            }
+        }
+
+        function setupControlButtons() {
+            const upBtn = document.getElementById('up-btn');
+            const leftBtn = document.getElementById('left-btn');
+            const rightBtn = document.getElementById('right-btn');
+
+            // Single click/touch events
+            upBtn.addEventListener('click', () => singleMove('up'));
+            leftBtn.addEventListener('click', () => singleMove('left'));
+            rightBtn.addEventListener('click', () => singleMove('right'));
+
+            // Touch events for mobile (prevent default to avoid double-firing)
+            upBtn.addEventListener('touchstart', (e) => { e.preventDefault(); });
+            upBtn.addEventListener('touchend', (e) => { e.preventDefault(); singleMove('up'); });
+            leftBtn.addEventListener('touchstart', (e) => { e.preventDefault(); });
+            leftBtn.addEventListener('touchend', (e) => { e.preventDefault(); singleMove('left'); });
+            rightBtn.addEventListener('touchstart', (e) => { e.preventDefault(); });
+            rightBtn.addEventListener('touchend', (e) => { e.preventDefault(); singleMove('right'); });
+
+            // Prevent context menu on right click
+            [upBtn, leftBtn, rightBtn].forEach(btn => {
+                btn.addEventListener('contextmenu', (e) => e.preventDefault());
+            });
+        }
+
+        // Animation loop
+        function animate() {
+            requestAnimationFrame(animate);
+            renderer.render(scene, camera);
+        }
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Initialize
+        createMaze();
+        setupControlButtons();
+        animate();
+    </script>
+</body>
 </html>
