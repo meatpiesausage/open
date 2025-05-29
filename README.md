@@ -3,13 +3,25 @@ curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip
 unzip awscliv2.zip
 sudo ./aws/install
 
+## Windows Install
+https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html
+
+msiexec.exe /i https://awscli.amazonaws.com/AWSCLIV2.msi
+
+
+
 # Install CDK globally
 npm install -g aws-cdk
+or 
+npm i @aws-cdk/aws-ec2
 
 # Verify installations
 aws --version
-cdk --version
+PC: aws-cli/2.27.24 Python/3.13.3 Windows/10 exe/AMD64
 
+
+cdk --version
+PC: 2.1014.0 (build e4c6a17)
 
 # Option 1: Configure default profile
 aws configure

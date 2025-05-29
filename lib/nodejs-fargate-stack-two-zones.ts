@@ -25,14 +25,14 @@ export class NodejsFargateStack extends cdk.Stack {
     const appName = props.appName || 'nodejs-fargate-app';
     const environment = props.environment || 'dev';
     const containerPort = props.containerPort || 3000;
-    const desiredCount = props.desiredCount || 1; // Reduced default for lightweight
+    const desiredCount = props.desiredCount || 2;
     const cpu = props.cpu || 256;
     const memory = props.memory || 512;
 
-    // Create VPC with public and private subnets in single AZ
+    // Create VPC with public and private subnets across 2 AZs
     const vpc = new ec2.Vpc(this, 'Vpc', {
-      maxAzs: 1, // Single AZ for lightweight deployment
-      natGateways: 1, // Single NAT gateway
+      maxAzs: 2,
+      natGateways: 2,
       subnetConfiguration: [
         {
           cidrMask: 24,
@@ -104,10 +104,10 @@ export class NodejsFargateStack extends cdk.Stack {
       unhealthyThresholdCount: 2,
     });
 
-    // Configure auto scaling (reduced capacity for lightweight)
+    // Configure auto scaling
     const scalableTarget = fargateService.service.autoScaleTaskCount({
       minCapacity: 1,
-      maxCapacity: 5, // Reduced from 10 for lightweight
+      maxCapacity: 10,
     });
 
     // Scale based on CPU utilization
