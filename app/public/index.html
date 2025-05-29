@@ -226,11 +226,14 @@
         }
 
         function getFacingDirection() {
-            const angle = ((playerRotation * 180 / Math.PI) % 360 + 360) % 360;
-            if (angle < 45 || angle >= 315) return "North";
-            if (angle >= 45 && angle < 135) return "East";
+            // Normalize rotation to 0-360 degrees
+            let angle = ((playerRotation * 180 / Math.PI) % 360 + 360) % 360;
+            console.log(`Raw angle: ${angle}`); // Debug
+            
+            if (angle >= 315 || angle < 45) return "North";
+            if (angle >= 45 && angle < 135) return "West"; // Fixed: was East
             if (angle >= 135 && angle < 225) return "South";
-            return "West";
+            return "East"; // Fixed: was West
         }
 
         // Collision detection
@@ -279,9 +282,26 @@
 
             switch(event.code) {
                 case 'ArrowUp':
-                    // Move forward in the direction the camera is facing
-                    const newX = playerX + Math.round(Math.sin(playerRotation));
-                    const newZ = playerZ - Math.round(Math.cos(playerRotation));
+                    // Calculate direction based on current rotation
+                    // Normalize rotation to 0, 90, 180, 270 degrees
+                    let normalizedRotation = ((playerRotation * 180 / Math.PI) % 360 + 360) % 360;
+                    let newX = playerX;
+                    let newZ = playerZ;
+                    
+                    // Determine movement based on facing direction
+                    if (normalizedRotation >= 315 || normalizedRotation < 45) {
+                        // Facing North (negative Z)
+                        newZ = playerZ - 1;
+                    } else if (normalizedRotation >= 45 && normalizedRotation < 135) {
+                        // Facing West (negative X) - Fixed
+                        newX = playerX - 1;
+                    } else if (normalizedRotation >= 135 && normalizedRotation < 225) {
+                        // Facing South (positive Z)
+                        newZ = playerZ + 1;
+                    } else if (normalizedRotation >= 225 && normalizedRotation < 315) {
+                        // Facing East (positive X) - Fixed
+                        newX = playerX + 1;
+                    }
                     
                     if (canMoveTo(newX, newZ)) {
                         playerX = newX;
@@ -316,8 +336,32 @@
             
             switch(direction) {
                 case 'up':
-                    const newX = playerX + Math.round(Math.sin(playerRotation));
-                    const newZ = playerZ - Math.round(Math.cos(playerRotation));
+                    // Calculate direction based on current rotation
+                    // Normalize rotation to 0, 90, 180, 270 degrees
+                    let normalizedRotation = ((playerRotation * 180 / Math.PI) % 360 + 360) % 360;
+                    let newX = playerX;
+                    let newZ = playerZ;
+                    
+                    // Determine movement based on facing direction
+                    if (normalizedRotation >= 315 || normalizedRotation < 45) {
+                        // Facing North
+                        newZ = playerZ - 1;
+                    } else if (normalizedRotation >= 45 && normalizedRotation < 135) {
+                        // Facing East
+                        newX = playerX + 1;
+                    } else if (normalizedRotation >= 135 && normalizedRotation < 225) {
+                        // Facing South
+                        newZ = playerZ + 1;
+                    } else if (normalizedRotation >= 225 && normalizedRotation < 315) {
+                        // Facing West
+                        newX = playerX - 1;
+                    }
+                    
+                    // Debug: show current facing direction
+                    console.log(`Current rotation: ${playerRotation} radians, ${normalizedRotation} degrees`);
+                    console.log(`Facing: ${getFacingDirection()}`);
+                    console.log(`Current position: (${playerX}, ${playerZ})`);
+                    console.log(`Trying to move to: (${newX}, ${newZ})`);
                     
                     if (canMoveTo(newX, newZ)) {
                         playerX = newX;
