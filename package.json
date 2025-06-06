@@ -1,31 +1,22 @@
 {
-  "name": "nodejs-fargate-cdk",
+  "name": "socket-io-game",
   "version": "1.0.0",
-  "bin": {
-    "nodejs-fargate-cdk": "bin/app.js"
-  },
+  "description": "A simple Socket.IO based game server",
+  "main": "server.js",
   "scripts": {
-    "build": "tsc",
-    "watch": "tsc -w",
-    "test": "jest",
-    "cdk": "cdk",
-    "deploy": "npm run build && cdk deploy",
-    "deploy-dev": "npm run build && cdk deploy NodejsFargateDevStack",
-    "deploy-prod": "npm run build && cdk deploy NodejsFargateProdStack",
-    "destroy": "cdk destroy",
-    "diff": "cdk diff",
-    "synth": "cdk synth"
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "keywords": [
+    "socket.io",
+    "game",
+    "real-time"
+  ],
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.7.2"
   },
   "devDependencies": {
-    "@types/jest": "^29.4.0",
-    "@types/node": "18.14.6",
-    "jest": "^29.5.0",
-    "ts-jest": "^29.0.5",
-    "typescript": "~4.9.5"
-  },
-  "dependencies": {
-    "@aws-cdk/aws-ec2": "^1.204.0",
-    "aws-cdk-lib": "^2.100.0",
-    "constructs": "^10.0.0"
+    "nodemon": "^3.0.1"
   }
 }
