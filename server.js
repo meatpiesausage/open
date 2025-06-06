@@ -51,6 +51,20 @@ io.on('connection', (socket) => {
     }
   });
 
+  // Handle chat messages
+  socket.on('chatMessage', (message) => {
+    if (players[socket.id] && message.trim()) {
+      console.log(`Chat from ${players[socket.id].username}: ${message}`);
+      
+      // Broadcast the message to all players
+      io.emit('chatMessage', {
+        playerId: socket.id,
+        username: players[socket.id].username,
+        message: message.trim()
+      });
+    }
+  });
+
   // Handle disconnection
   socket.on('disconnect', () => {
     console.log('User disconnected:', socket.id);

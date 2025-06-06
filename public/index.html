@@ -34,6 +34,43 @@
             font-weight: bold;
             transition: left 0.3s, top 0.3s;
         }
+        .speech-bubble {
+            position: absolute;
+            background-color: white;
+            border: 2px solid #333;
+            border-radius: 10px;
+            padding: 8px 12px;
+            max-width: 150px;
+            word-wrap: break-word;
+            font-size: 12px;
+            z-index: 1000;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .speech-bubble.show {
+            opacity: 1;
+        }
+        .speech-bubble::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 8px solid transparent;
+            border-top-color: white;
+        }
+        .speech-bubble::before {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 10px solid transparent;
+            border-top-color: #333;
+            z-index: -1;
+        }
         #login-container {
             margin-bottom: 20px;
             text-align: center;
@@ -44,6 +81,28 @@
         }
         #controls {
             margin-top: 10px;
+        }
+        #chat-container {
+            margin-top: 15px;
+            display: none;
+        }
+        #chat-input {
+            width: 200px;
+            padding: 8px;
+            margin-right: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        #send-button {
+            padding: 8px 16px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        #send-button:hover {
+            background-color: #0056b3;
         }
         button {
             margin: 5px;
@@ -68,6 +127,11 @@
         <button id="down-button">Down</button>
     </div>
     
+    <div id="chat-container">
+        <input type="text" id="chat-input" placeholder="Type a message..." maxlength="100">
+        <button id="send-button">Send</button>
+    </div>
+    
     <div id="players-list" style="display: none;">
         <h3>Players Online:</h3>
         <ul id="players"></ul>
@@ -82,6 +146,9 @@
         const loginContainer = document.getElementById('login-container');
         const gameContainer = document.getElementById('game-container');
         const controls = document.getElementById('controls');
+        const chatContainer = document.getElementById('chat-container');
+        const chatInput = document.getElementById('chat-input');
+        const sendButton = document.getElementById('send-button');
         const playersList = document.getElementById('players-list');
         const playersUl = document.getElementById('players');
         const usernameInput = document.getElementById('username-input');
@@ -90,6 +157,7 @@
         // Game variables
         let myPlayerId = null;
         let playerElements = {};
+        let speechBubbles = {};
         const moveStep = 10;
         const playerColors = [
             '#ff4d4d', '#4da6ff', '#4dff4d', '#ffff4d', 
@@ -104,8 +172,25 @@
                 loginContainer.style.display = 'none';
                 gameContainer.style.display = 'block';
                 controls.style.display = 'block';
+                chatContainer.style.display = 'block';
                 playersList.style.display = 'block';
                 myPlayerId = socket.id;
+            }
+        });
+        
+        // Chat functionality
+        function sendMessage() {
+            const message = chatInput.value.trim();
+            if (message && myPlayerId) {
+                socket.emit('chatMessage', message);
+                chatInput.value = '';
+            }
+        }
+        
+        sendButton.addEventListener('click', sendMessage);
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
             }
         });
         
@@ -118,6 +203,9 @@
         // Keyboard controls
         document.addEventListener('keydown', (e) => {
             if (!myPlayerId) return;
+            
+            // Don't move if user is typing in chat
+            if (document.activeElement === chatInput) return;
             
             switch (e.key) {
                 case 'ArrowUp':
@@ -148,6 +236,11 @@
             player.style.left = `${newX}px`;
             player.style.top = `${newY}px`;
             
+            // Update speech bubble position if it exists
+            if (speechBubbles[myPlayerId]) {
+                updateSpeechBubblePosition(myPlayerId, newX, newY);
+            }
+            
             socket.emit('updatePosition', { x: newX, y: newY });
         }
         
@@ -174,11 +267,59 @@
             playerElements[id] = playerEl;
         }
         
+        function createSpeechBubble(playerId, message) {
+            // Remove existing speech bubble if any
+            if (speechBubbles[playerId]) {
+                gameContainer.removeChild(speechBubbles[playerId]);
+                delete speechBubbles[playerId];
+            }
+            
+            const player = playerElements[playerId];
+            if (!player) return;
+            
+            const bubble = document.createElement('div');
+            bubble.className = 'speech-bubble';
+            bubble.textContent = message;
+            
+            const playerX = parseInt(player.style.left);
+            const playerY = parseInt(player.style.top);
+            
+            bubble.style.left = `${playerX}px`;
+            bubble.style.top = `${playerY - 60}px`;
+            
+            gameContainer.appendChild(bubble);
+            speechBubbles[playerId] = bubble;
+            
+            // Show the bubble with animation
+            setTimeout(() => {
+                bubble.classList.add('show');
+            }, 10);
+            
+            // Hide the bubble after 5 seconds
+            setTimeout(() => {
+                bubble.classList.remove('show');
+                setTimeout(() => {
+                    if (speechBubbles[playerId] === bubble) {
+                        gameContainer.removeChild(bubble);
+                        delete speechBubbles[playerId];
+                    }
+                }, 300);
+            }, 5000);
+        }
+        
+        function updateSpeechBubblePosition(playerId, x, y) {
+            if (speechBubbles[playerId]) {
+                speechBubbles[playerId].style.left = `${x}px`;
+                speechBubbles[playerId].style.top = `${y - 60}px`;
+            }
+        }
+        
         // Socket events
         socket.on('gameState', (players) => {
             // Clear game container
             gameContainer.innerHTML = '';
             playerElements = {};
+            speechBubbles = {};
             
             // Create player elements
             Object.keys(players).forEach((id, index) => {
@@ -210,6 +351,11 @@
                 playerElements[player.id].style.left = `${player.x}px`;
                 playerElements[player.id].style.top = `${player.y}px`;
                 
+                // Update speech bubble position if it exists
+                if (speechBubbles[player.id]) {
+                    updateSpeechBubblePosition(player.id, player.x, player.y);
+                }
+                
                 const allPlayers = {};
                 Object.keys(playerElements).forEach(id => {
                     const el = playerElements[id];
@@ -229,6 +375,12 @@
                 gameContainer.removeChild(playerElements[playerId]);
                 delete playerElements[playerId];
                 
+                // Remove speech bubble if it exists
+                if (speechBubbles[playerId]) {
+                    gameContainer.removeChild(speechBubbles[playerId]);
+                    delete speechBubbles[playerId];
+                }
+                
                 const allPlayers = {};
                 Object.keys(playerElements).forEach(id => {
                     const el = playerElements[id];
@@ -241,6 +393,10 @@
                 
                 updatePlayersList(allPlayers);
             }
+        });
+        
+        socket.on('chatMessage', (data) => {
+            createSpeechBubble(data.playerId, data.message);
         });
     </script>
 </body>
