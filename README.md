@@ -16,6 +16,13 @@ npm start
 
 on-screen buttons for player control
 text entry and speech bubbles for each player
+screen set to take up the top half of the screen including:
+    Mobile-Specific Improvements:
+    Smaller player circles and buttons on mobile devices
+    Adjusted font sizes for better readability
+    Optimized touch targets for mobile interaction
+    Better spacing and padding for mobile screens
+    Arrow symbols (↑←→↓) for direction buttons to save space
 
 ## Requests
 Make the player area fit the screen.
