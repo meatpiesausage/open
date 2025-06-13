@@ -34,6 +34,10 @@
             font-weight: bold;
             transition: left 0.3s, top 0.3s;
         }
+        .player.inactive {
+            opacity: 0.5;
+            border: 2px dashed #666;
+        }
         .speech-bubble {
             position: absolute;
             background-color: white;
@@ -75,9 +79,21 @@
             margin-bottom: 20px;
             text-align: center;
         }
+        #error-message {
+            color: red;
+            margin-top: 10px;
+            display: none;
+        }
         #players-list {
             width: 600px;
             margin-top: 20px;
+        }
+        .player-item {
+            margin: 5px 0;
+        }
+        .player-item.inactive {
+            opacity: 0.6;
+            font-style: italic;
         }
         #controls {
             margin-top: 10px;
@@ -111,11 +127,12 @@
     </style>
 </head>
 <body>
-    <h1>Socket.IO Game</h1>
+    <h1>Socket.IO Game with Persistent Characters</h1>
     
     <div id="login-container">
         <input type="text" id="username-input" placeholder="Enter your username">
         <button id="join-button">Join Game</button>
+        <div id="error-message"></div>
     </div>
     
     <div id="game-container" style="display: none;"></div>
@@ -133,8 +150,8 @@
     </div>
     
     <div id="players-list" style="display: none;">
-        <h3>Players Online:</h3>
-        <ul id="players"></ul>
+        <h3>Players:</h3>
+        <div id="players"></div>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
@@ -150,12 +167,13 @@
         const chatInput = document.getElementById('chat-input');
         const sendButton = document.getElementById('send-button');
         const playersList = document.getElementById('players-list');
-        const playersUl = document.getElementById('players');
+        const playersDiv = document.getElementById('players');
         const usernameInput = document.getElementById('username-input');
         const joinButton = document.getElementById('join-button');
+        const errorMessage = document.getElementById('error-message');
         
         // Game variables
-        let myPlayerId = null;
+        let myUsername = null;
         let playerElements = {};
         let speechBubbles = {};
         const moveStep = 10;
@@ -164,24 +182,40 @@
             '#ff4dff', '#4dffc4', '#c44dff', '#ffa64d'
         ];
         
+        // Hash function to consistently assign colors to usernames
+        function hashCode(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                const char = str.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash; // Convert to 32-bit integer
+            }
+            return Math.abs(hash);
+        }
+        
+        function getPlayerColor(username) {
+            return playerColors[hashCode(username) % playerColors.length];
+        }
+        
         // Join the game
         joinButton.addEventListener('click', () => {
             const username = usernameInput.value.trim();
             if (username) {
                 socket.emit('playerJoin', username);
-                loginContainer.style.display = 'none';
-                gameContainer.style.display = 'block';
-                controls.style.display = 'block';
-                chatContainer.style.display = 'block';
-                playersList.style.display = 'block';
-                myPlayerId = socket.id;
+                errorMessage.style.display = 'none';
             }
+        });
+        
+        // Handle join errors
+        socket.on('joinError', (message) => {
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
         });
         
         // Chat functionality
         function sendMessage() {
             const message = chatInput.value.trim();
-            if (message && myPlayerId) {
+            if (message && myUsername) {
                 socket.emit('chatMessage', message);
                 chatInput.value = '';
             }
@@ -202,10 +236,10 @@
         
         // Keyboard controls
         document.addEventListener('keydown', (e) => {
-            if (!myPlayerId) return;
+            if (!myUsername) return;
             
-            // Don't move if user is typing in chat
-            if (document.activeElement === chatInput) return;
+            // Don't move if user is typing in chat or username
+            if (document.activeElement === chatInput || document.activeElement === usernameInput) return;
             
             switch (e.key) {
                 case 'ArrowUp':
@@ -224,9 +258,9 @@
         });
         
         function movePlayer(deltaX, deltaY) {
-            if (!playerElements[myPlayerId]) return;
+            if (!playerElements[myUsername]) return;
             
-            const player = playerElements[myPlayerId];
+            const player = playerElements[myUsername];
             const currentX = parseInt(player.style.left);
             const currentY = parseInt(player.style.top);
             
@@ -237,44 +271,79 @@
             player.style.top = `${newY}px`;
             
             // Update speech bubble position if it exists
-            if (speechBubbles[myPlayerId]) {
-                updateSpeechBubblePosition(myPlayerId, newX, newY);
+            if (speechBubbles[myUsername]) {
+                updateSpeechBubblePosition(myUsername, newX, newY);
             }
             
             socket.emit('updatePosition', { x: newX, y: newY });
         }
         
         function updatePlayersList(players) {
-            playersUl.innerHTML = '';
-            Object.keys(players).forEach((id, index) => {
-                const player = players[id];
-                const li = document.createElement('li');
-                li.textContent = `${player.username} (${player.x}, ${player.y})`;
-                li.style.color = playerColors[index % playerColors.length];
-                playersUl.appendChild(li);
+            playersDiv.innerHTML = '';
+            Object.keys(players).forEach((username) => {
+                const player = players[username];
+                const div = document.createElement('div');
+                div.className = `player-item ${player.isActive ? '' : 'inactive'}`;
+                
+                const status = player.isActive ? 'Online' : 'Offline';
+                const timeAgo = player.lastSeen ? getTimeAgo(player.lastSeen) : '';
+                
+                div.innerHTML = `
+                    <span style="color: ${getPlayerColor(username)};">●</span>
+                    <strong>${player.username}</strong> 
+                    (${player.x}, ${player.y}) - 
+                    <span style="color: ${player.isActive ? 'green' : 'gray'};">${status}</span>
+                    ${!player.isActive && timeAgo ? ` - ${timeAgo}` : ''}
+                `;
+                
+                playersDiv.appendChild(div);
             });
         }
         
-        function createPlayerElement(id, player, colorIndex) {
-            const playerEl = document.createElement('div');
-            playerEl.className = 'player';
-            playerEl.style.left = `${player.x}px`;
-            playerEl.style.top = `${player.y}px`;
-            playerEl.style.backgroundColor = playerColors[colorIndex % playerColors.length];
-            playerEl.textContent = player.username.charAt(0).toUpperCase();
-            playerEl.setAttribute('title', player.username);
-            gameContainer.appendChild(playerEl);
-            playerElements[id] = playerEl;
+        function getTimeAgo(timestamp) {
+            const seconds = Math.floor((Date.now() - timestamp) / 1000);
+            if (seconds < 60) return `${seconds}s ago`;
+            const minutes = Math.floor(seconds / 60);
+            if (minutes < 60) return `${minutes}m ago`;
+            const hours = Math.floor(minutes / 60);
+            return `${hours}h ago`;
         }
         
-        function createSpeechBubble(playerId, message) {
+        function createPlayerElement(username, player) {
+            const playerEl = document.createElement('div');
+            playerEl.className = `player ${player.isActive ? '' : 'inactive'}`;
+            playerEl.style.left = `${player.x}px`;
+            playerEl.style.top = `${player.y}px`;
+            playerEl.style.backgroundColor = getPlayerColor(username);
+            playerEl.textContent = player.username.charAt(0).toUpperCase();
+            playerEl.setAttribute('title', `${player.username} (${player.isActive ? 'Online' : 'Offline'})`);
+            gameContainer.appendChild(playerEl);
+            playerElements[username] = playerEl;
+        }
+        
+        function updatePlayerElement(username, player) {
+            if (playerElements[username]) {
+                const playerEl = playerElements[username];
+                playerEl.style.left = `${player.x}px`;
+                playerEl.style.top = `${player.y}px`;
+                playerEl.className = `player ${player.isActive ? '' : 'inactive'}`;
+                playerEl.setAttribute('title', `${player.username} (${player.isActive ? 'Online' : 'Offline'})`);
+                
+                // Update speech bubble position if it exists
+                if (speechBubbles[username]) {
+                    updateSpeechBubblePosition(username, player.x, player.y);
+                }
+            }
+        }
+        
+        function createSpeechBubble(username, message) {
             // Remove existing speech bubble if any
-            if (speechBubbles[playerId]) {
-                gameContainer.removeChild(speechBubbles[playerId]);
-                delete speechBubbles[playerId];
+            if (speechBubbles[username]) {
+                gameContainer.removeChild(speechBubbles[username]);
+                delete speechBubbles[username];
             }
             
-            const player = playerElements[playerId];
+            const player = playerElements[username];
             if (!player) return;
             
             const bubble = document.createElement('div');
@@ -288,7 +357,7 @@
             bubble.style.top = `${playerY - 60}px`;
             
             gameContainer.appendChild(bubble);
-            speechBubbles[playerId] = bubble;
+            speechBubbles[username] = bubble;
             
             // Show the bubble with animation
             setTimeout(() => {
@@ -299,104 +368,110 @@
             setTimeout(() => {
                 bubble.classList.remove('show');
                 setTimeout(() => {
-                    if (speechBubbles[playerId] === bubble) {
+                    if (speechBubbles[username] === bubble) {
                         gameContainer.removeChild(bubble);
-                        delete speechBubbles[playerId];
+                        delete speechBubbles[username];
                     }
                 }, 300);
             }, 5000);
         }
         
-        function updateSpeechBubblePosition(playerId, x, y) {
-            if (speechBubbles[playerId]) {
-                speechBubbles[playerId].style.left = `${x}px`;
-                speechBubbles[playerId].style.top = `${y - 60}px`;
+        function updateSpeechBubblePosition(username, x, y) {
+            if (speechBubbles[username]) {
+                speechBubbles[username].style.left = `${x}px`;
+                speechBubbles[username].style.top = `${y - 60}px`;
             }
         }
         
         // Socket events
         socket.on('gameState', (players) => {
+            // Store my username
+            myUsername = usernameInput.value.trim();
+            
+            // Show game UI
+            loginContainer.style.display = 'none';
+            gameContainer.style.display = 'block';
+            controls.style.display = 'block';
+            chatContainer.style.display = 'block';
+            playersList.style.display = 'block';
+            
             // Clear game container
             gameContainer.innerHTML = '';
             playerElements = {};
             speechBubbles = {};
             
             // Create player elements
-            Object.keys(players).forEach((id, index) => {
-                createPlayerElement(id, players[id], index);
+            Object.keys(players).forEach((username) => {
+                createPlayerElement(username, players[username]);
             });
             
             updatePlayersList(players);
         });
         
-        socket.on('playerJoined', (player) => {
-            const colorIndex = Object.keys(playerElements).length;
-            createPlayerElement(player.id, player, colorIndex);
+        socket.on('playerStatusChanged', (data) => {
+            const { username, action } = data;
             
-            const allPlayers = {};
-            Object.keys(playerElements).forEach(id => {
-                const el = playerElements[id];
-                allPlayers[id] = {
-                    username: el.getAttribute('title'),
+            if (action === 'joined') {
+                if (!playerElements[username]) {
+                    createPlayerElement(username, data);
+                } else {
+                    updatePlayerElement(username, data);
+                }
+            } else if (action === 'left') {
+                updatePlayerElement(username, data);
+            }
+            
+            // Update the players list with current state
+            // We need to reconstruct the players object from current elements
+            const currentPlayers = {};
+            Object.keys(playerElements).forEach(name => {
+                const el = playerElements[name];
+                currentPlayers[name] = {
+                    username: name,
                     x: parseInt(el.style.left),
-                    y: parseInt(el.style.top)
+                    y: parseInt(el.style.top),
+                    isActive: !el.classList.contains('inactive'),
+                    lastSeen: data.username === name ? data.lastSeen : Date.now()
                 };
             });
             
-            updatePlayersList(allPlayers);
+            updatePlayersList(currentPlayers);
         });
         
         socket.on('playerMoved', (player) => {
-            if (playerElements[player.id]) {
-                playerElements[player.id].style.left = `${player.x}px`;
-                playerElements[player.id].style.top = `${player.y}px`;
-                
-                // Update speech bubble position if it exists
-                if (speechBubbles[player.id]) {
-                    updateSpeechBubblePosition(player.id, player.x, player.y);
-                }
-                
-                const allPlayers = {};
-                Object.keys(playerElements).forEach(id => {
-                    const el = playerElements[id];
-                    allPlayers[id] = {
-                        username: el.getAttribute('title'),
-                        x: parseInt(el.style.left),
-                        y: parseInt(el.style.top)
-                    };
-                });
-                
-                updatePlayersList(allPlayers);
+            updatePlayerElement(player.username, player);
+            
+            // Update players list (simplified - just update positions)
+            const playerItem = document.querySelector(`.player-item:has(strong:contains("${player.username}"))`);
+            if (playerItem) {
+                playerItem.innerHTML = playerItem.innerHTML.replace(
+                    /\(\d+, \d+\)/,
+                    `(${player.x}, ${player.y})`
+                );
             }
         });
         
-        socket.on('playerLeft', (playerId) => {
-            if (playerElements[playerId]) {
-                gameContainer.removeChild(playerElements[playerId]);
-                delete playerElements[playerId];
+        socket.on('playerRemoved', (username) => {
+            if (playerElements[username]) {
+                gameContainer.removeChild(playerElements[username]);
+                delete playerElements[username];
                 
                 // Remove speech bubble if it exists
-                if (speechBubbles[playerId]) {
-                    gameContainer.removeChild(speechBubbles[playerId]);
-                    delete speechBubbles[playerId];
+                if (speechBubbles[username]) {
+                    gameContainer.removeChild(speechBubbles[username]);
+                    delete speechBubbles[username];
                 }
                 
-                const allPlayers = {};
-                Object.keys(playerElements).forEach(id => {
-                    const el = playerElements[id];
-                    allPlayers[id] = {
-                        username: el.getAttribute('title'),
-                        x: parseInt(el.style.left),
-                        y: parseInt(el.style.top)
-                    };
-                });
-                
-                updatePlayersList(allPlayers);
+                // Remove from players list
+                const playerItem = document.querySelector(`.player-item:has(strong:contains("${username}"))`);
+                if (playerItem) {
+                    playerItem.remove();
+                }
             }
         });
         
         socket.on('chatMessage', (data) => {
-            createSpeechBubble(data.playerId, data.message);
+            createSpeechBubble(data.username, data.message);
         });
     </script>
 </body>

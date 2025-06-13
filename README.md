@@ -11,3 +11,12 @@ They can move around within the box and they can enter a message that appears as
 npm install
 npm start
 ```
+
+## Recent Changes
+
+on-screen buttons for player control
+text entry and speech bubbles for each player
+
+## Requests
+Make the player area fit the screen.
+Holding down on the on screen button makes the player move. Maybe we try swipes instead?
