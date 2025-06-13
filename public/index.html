@@ -62,7 +62,7 @@
             justify-content: center;
             color: white;
             font-weight: bold;
-            transition: left 0.3s, top 0.3s;
+            transition: left 0.1s, top 0.1s;
         }
         
         .player.inactive {
@@ -144,13 +144,19 @@
             border-radius: 6px;
             cursor: pointer;
             min-width: 60px;
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            transition: background-color 0.1s;
         }
         
         #controls button:hover {
             background-color: #0056b3;
         }
         
-        #controls button:active {
+        #controls button:active, #controls button.pressed {
+            background-color: #004494;
             transform: scale(0.95);
         }
         
@@ -340,11 +346,17 @@
         let myUsername = null;
         let playerElements = {};
         let speechBubbles = {};
-        const moveStep = 10;
+        const moveStep = 8;
+        const moveInterval = 50; // milliseconds between moves when holding
         const playerColors = [
             '#ff4d4d', '#4da6ff', '#4dff4d', '#ffff4d', 
             '#ff4dff', '#4dffc4', '#c44dff', '#ffa64d'
         ];
+        
+        // Movement state
+        let movementInterval = null;
+        let currentDirection = null;
+        let isMoving = false;
         
         // Hash function to consistently assign colors to usernames
         function hashCode(str) {
@@ -359,6 +371,80 @@
         
         function getPlayerColor(username) {
             return playerColors[hashCode(username) % playerColors.length];
+        }
+        
+        // Movement functions
+        function startMovement(direction) {
+            if (isMoving && currentDirection === direction) return;
+            
+            stopMovement();
+            currentDirection = direction;
+            isMoving = true;
+            
+            // Add pressed class for visual feedback
+            const buttonId = direction + '-button';
+            document.getElementById(buttonId).classList.add('pressed');
+            
+            // Move immediately
+            movePlayer(direction);
+            
+            // Set up continuous movement
+            movementInterval = setInterval(() => {
+                movePlayer(direction);
+            }, moveInterval);
+        }
+        
+        function stopMovement() {
+            if (movementInterval) {
+                clearInterval(movementInterval);
+                movementInterval = null;
+            }
+            
+            // Remove pressed class from all buttons
+            ['up', 'down', 'left', 'right'].forEach(dir => {
+                document.getElementById(dir + '-button').classList.remove('pressed');
+            });
+            
+            currentDirection = null;
+            isMoving = false;
+        }
+        
+        function movePlayer(direction) {
+            if (!playerElements[myUsername]) return;
+            
+            const player = playerElements[myUsername];
+            const currentX = parseInt(player.style.left);
+            const currentY = parseInt(player.style.top);
+            
+            let deltaX = 0, deltaY = 0;
+            
+            switch (direction) {
+                case 'up':
+                    deltaY = -moveStep;
+                    break;
+                case 'down':
+                    deltaY = moveStep;
+                    break;
+                case 'left':
+                    deltaX = -moveStep;
+                    break;
+                case 'right':
+                    deltaX = moveStep;
+                    break;
+            }
+            
+            let newX = Math.max(20, Math.min(gameContainer.clientWidth - 20, currentX + deltaX));
+            let newY = Math.max(20, Math.min(gameContainer.clientHeight - 20, currentY + deltaY));
+            
+            player.style.left = `${newX}px`;
+            player.style.top = `${newY}px`;
+            
+            // Update speech bubble position if it exists
+            if (speechBubbles[myUsername]) {
+                updateSpeechBubblePosition(myUsername, newX, newY);
+            }
+            
+            socket.emit('updatePosition', { x: newX, y: newY });
         }
         
         // Join the game
@@ -392,55 +478,86 @@
             }
         });
         
-        // Movement controls
-        document.getElementById('up-button').addEventListener('click', () => movePlayer(0, -moveStep));
-        document.getElementById('down-button').addEventListener('click', () => movePlayer(0, moveStep));
-        document.getElementById('left-button').addEventListener('click', () => movePlayer(-moveStep, 0));
-        document.getElementById('right-button').addEventListener('click', () => movePlayer(moveStep, 0));
+        // Movement controls - Mouse events
+        document.getElementById('up-button').addEventListener('mousedown', () => startMovement('up'));
+        document.getElementById('down-button').addEventListener('mousedown', () => startMovement('down'));
+        document.getElementById('left-button').addEventListener('mousedown', () => startMovement('left'));
+        document.getElementById('right-button').addEventListener('mousedown', () => startMovement('right'));
+        
+        // Stop movement on mouse up or leave
+        ['up', 'down', 'left', 'right'].forEach(direction => {
+            const button = document.getElementById(direction + '-button');
+            button.addEventListener('mouseup', stopMovement);
+            button.addEventListener('mouseleave', stopMovement);
+        });
+        
+        // Touch events for mobile
+        ['up', 'down', 'left', 'right'].forEach(direction => {
+            const button = document.getElementById(direction + '-button');
+            
+            button.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                startMovement(direction);
+            });
+            
+            button.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                stopMovement();
+            });
+            
+            button.addEventListener('touchcancel', (e) => {
+                e.preventDefault();
+                stopMovement();
+            });
+        });
+        
+        // Global mouse up to ensure movement stops if mouse is released outside button
+        document.addEventListener('mouseup', stopMovement);
         
         // Keyboard controls
+        let pressedKeys = {};
+        
         document.addEventListener('keydown', (e) => {
             if (!myUsername) return;
             
             // Don't move if user is typing in chat or username
             if (document.activeElement === chatInput || document.activeElement === usernameInput) return;
             
+            // Prevent repeating keydown events
+            if (pressedKeys[e.key]) return;
+            pressedKeys[e.key] = true;
+            
             switch (e.key) {
                 case 'ArrowUp':
-                    movePlayer(0, -moveStep);
+                    startMovement('up');
                     break;
                 case 'ArrowDown':
-                    movePlayer(0, moveStep);
+                    startMovement('down');
                     break;
                 case 'ArrowLeft':
-                    movePlayer(-moveStep, 0);
+                    startMovement('left');
                     break;
                 case 'ArrowRight':
-                    movePlayer(moveStep, 0);
+                    startMovement('right');
                     break;
             }
         });
         
-        function movePlayer(deltaX, deltaY) {
-            if (!playerElements[myUsername]) return;
+        document.addEventListener('keyup', (e) => {
+            pressedKeys[e.key] = false;
             
-            const player = playerElements[myUsername];
-            const currentX = parseInt(player.style.left);
-            const currentY = parseInt(player.style.top);
-            
-            let newX = Math.max(0, Math.min(gameContainer.clientWidth, currentX + deltaX));
-            let newY = Math.max(0, Math.min(gameContainer.clientHeight, currentY + deltaY));
-            
-            player.style.left = `${newX}px`;
-            player.style.top = `${newY}px`;
-            
-            // Update speech bubble position if it exists
-            if (speechBubbles[myUsername]) {
-                updateSpeechBubblePosition(myUsername, newX, newY);
+            switch (e.key) {
+                case 'ArrowUp':
+                case 'ArrowDown':
+                case 'ArrowLeft':
+                case 'ArrowRight':
+                    stopMovement();
+                    break;
             }
-            
-            socket.emit('updatePosition', { x: newX, y: newY });
-        }
+        });
+        
+        // Stop movement when window loses focus
+        window.addEventListener('blur', stopMovement);
         
         function updatePlayersList(players) {
             playersDiv.innerHTML = '';
@@ -527,19 +644,6 @@
             setTimeout(() => {
                 bubble.classList.add('show');
             }, 10);
-            
-            /*
-            // Hide the bubble after 5 seconds
-            setTimeout(() => {
-                bubble.classList.remove('show');
-                setTimeout(() => {
-                    if (speechBubbles[username] === bubble) {
-                        gameContainer.removeChild(bubble);
-                        delete speechBubbles[username];
-                    }
-                }, 300);
-            }, 5000);
-            */
         }
         
         function updateSpeechBubblePosition(username, x, y) {
@@ -588,7 +692,6 @@
             }
             
             // Update the players list with current state
-            // We need to reconstruct the players object from current elements
             const currentPlayers = {};
             Object.keys(playerElements).forEach(name => {
                 const el = playerElements[name];
