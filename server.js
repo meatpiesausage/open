@@ -14,6 +14,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 const players = {}; // username -> player data
 const activeSockets = {}; // socketId -> username mapping
 const socketToUsername = {}; // socketId -> username for quick lookup
+const recentMessages = []; // Store recent chat messages
+const MAX_STORED_MESSAGES = 50; // Keep last 50 messages
 
 io.on('connection', (socket) => {
   console.log('A user connected:', socket.id);
@@ -55,6 +57,11 @@ io.on('connection', (socket) => {
     // Send the current state to the new player
     socket.emit('gameState', players);
     
+    // Send recent chat messages to the new player
+    recentMessages.forEach(msg => {
+      socket.emit('chatMessage', msg);
+    });
+    
     // Broadcast to all other players that a player joined/returned
     socket.broadcast.emit('playerStatusChanged', {
       username: username,
@@ -87,11 +94,22 @@ io.on('connection', (socket) => {
       
       players[username].lastSeen = Date.now();
       
-      // Broadcast the message to all players
-      io.emit('chatMessage', {
+      const chatData = {
         username: username,
-        message: message.trim()
-      });
+        message: message.trim(),
+        timestamp: Date.now()
+      };
+      
+      // Store the message
+      recentMessages.push(chatData);
+      
+      // Keep only recent messages
+      if (recentMessages.length > MAX_STORED_MESSAGES) {
+        recentMessages.shift(); // Remove oldest message
+      }
+      
+      // Broadcast the message to all players
+      io.emit('chatMessage', chatData);
     }
   });
 
