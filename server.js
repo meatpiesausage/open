@@ -14,8 +14,6 @@ app.use(express.static(path.join(__dirname, 'public')));
 const players = {}; // username -> player data
 const activeSockets = {}; // socketId -> username mapping
 const socketToUsername = {}; // socketId -> username for quick lookup
-const recentMessages = []; // Store recent chat messages
-const MAX_STORED_MESSAGES = 50; // Keep last 50 messages
 
 io.on('connection', (socket) => {
   console.log('A user connected:', socket.id);
@@ -50,16 +48,24 @@ io.on('connection', (socket) => {
         y: Math.floor(Math.random() * 500),
         isActive: true,
         createdAt: Date.now(),
-        lastSeen: Date.now()
+        lastSeen: Date.now(),
+        lastMessage: null, // Store the last message
+        lastMessageTime: null // Store when the last message was sent
       };
     }
     
     // Send the current state to the new player
     socket.emit('gameState', players);
     
-    // Send recent chat messages to the new player
-    recentMessages.forEach(msg => {
-      socket.emit('chatMessage', msg);
+    // Send last messages from all players who have messages
+    Object.keys(players).forEach(playerUsername => {
+      if (players[playerUsername].lastMessage) {
+        socket.emit('chatMessage', {
+          username: playerUsername,
+          message: players[playerUsername].lastMessage,
+          isHistorical: true // Flag to indicate this is a previous message
+        });
+      }
     });
     
     // Broadcast to all other players that a player joined/returned
@@ -92,24 +98,18 @@ io.on('connection', (socket) => {
     if (username && players[username] && players[username].isActive && message.trim()) {
       console.log(`Chat from ${username}: ${message}`);
       
+      const trimmedMessage = message.trim();
       players[username].lastSeen = Date.now();
       
-      const chatData = {
-        username: username,
-        message: message.trim(),
-        timestamp: Date.now()
-      };
-      
-      // Store the message
-      recentMessages.push(chatData);
-      
-      // Keep only recent messages
-      if (recentMessages.length > MAX_STORED_MESSAGES) {
-        recentMessages.shift(); // Remove oldest message
-      }
+      // Store the last message for this player
+      players[username].lastMessage = trimmedMessage;
+      players[username].lastMessageTime = Date.now();
       
       // Broadcast the message to all players
-      io.emit('chatMessage', chatData);
+      io.emit('chatMessage', {
+        username: username,
+        message: trimmedMessage
+      });
     }
   });
 
@@ -170,4 +170,4 @@ setInterval(() => {
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-});
+}); 
