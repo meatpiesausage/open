@@ -24,6 +24,9 @@ screen set to take up the top half of the screen including:
     Better spacing and padding for mobile screens
     Arrow symbols (↑←→↓) for direction buttons to save space
 
+Holding movement keys down means that the player continually moves. 
+Also added persistent messages.
+
 ## Requests
 Make the player area fit the screen.
 Holding down on the on screen button makes the player move. Maybe we try swipes instead?
