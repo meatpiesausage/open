@@ -63,11 +63,56 @@
             color: white;
             font-weight: bold;
             transition: left 0.1s, top 0.1s;
+            overflow: hidden;
+        }
+        
+        .player-background {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: conic-gradient(from 0deg, transparent 0%, transparent 100%);
+        }
+        
+        .player-content {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+        }
+        
+        /* Life indicator styles */
+        .life-4 .player-background {
+            background: conic-gradient(from -90deg, var(--player-color) 0%, var(--player-color) 100%);
+        }
+        
+        .life-3 .player-background {
+            background: conic-gradient(from -90deg, var(--player-color) 0%, var(--player-color) 75%, #ddd 75%, #ddd 100%);
+        }
+        
+        .life-2 .player-background {
+            background: conic-gradient(from -90deg, var(--player-color) 0%, var(--player-color) 50%, #ddd 50%, #ddd 100%);
+        }
+        
+        .life-1 .player-background {
+            background: conic-gradient(from -90deg, var(--player-color) 0%, var(--player-color) 25%, #ddd 25%, #ddd 100%);
+        }
+        
+        .life-0 .player-background {
+            background: #ddd;
         }
         
         .player.inactive {
             opacity: 0.5;
             border: 2px dashed #666;
+        }
+        
+        .player.inactive .player-background {
+            background: #ccc !important;
         }
         
         .speech-bubble {
@@ -218,6 +263,15 @@
             background-color: #f8f9fa;
         }
         
+        .life-indicator {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            margin-left: 5px;
+            vertical-align: middle;
+        }
+        
         /* Mobile optimizations */
         @media (max-width: 768px) {
             h1 {
@@ -271,6 +325,11 @@
                 font-size: 11px;
                 padding: 6px 8px;
             }
+            
+            .life-indicator {
+                width: 14px;
+                height: 14px;
+            }
         }
         
         /* Very small screens */
@@ -290,6 +349,11 @@
                 padding: 8px 10px;
                 font-size: 11px;
                 min-width: 45px;
+            }
+            
+            .life-indicator {
+                width: 12px;
+                height: 12px;
             }
         }
     </style>
@@ -371,6 +435,33 @@
         
         function getPlayerColor(username) {
             return playerColors[hashCode(username) % playerColors.length];
+        }
+        
+        function createLifeIndicator(life, color) {
+            const indicator = document.createElement('div');
+            indicator.className = 'life-indicator';
+            
+            let gradientStops;
+            switch (life) {
+                case 4:
+                    gradientStops = `conic-gradient(from -90deg, ${color} 0%, ${color} 100%)`;
+                    break;
+                case 3:
+                    gradientStops = `conic-gradient(from -90deg, ${color} 0%, ${color} 75%, #ddd 75%, #ddd 100%)`;
+                    break;
+                case 2:
+                    gradientStops = `conic-gradient(from -90deg, ${color} 0%, ${color} 50%, #ddd 50%, #ddd 100%)`;
+                    break;
+                case 1:
+                    gradientStops = `conic-gradient(from -90deg, ${color} 0%, ${color} 25%, #ddd 25%, #ddd 100%)`;
+                    break;
+                default:
+                    gradientStops = '#ddd';
+                    break;
+            }
+            
+            indicator.style.background = gradientStops;
+            return indicator;
         }
         
         // Movement functions
@@ -568,6 +659,9 @@
                 
                 const status = player.isActive ? 'Online' : 'Offline';
                 const timeAgo = player.lastSeen ? getTimeAgo(player.lastSeen) : '';
+                const life = player.life || 4;
+                
+                const lifeIndicator = createLifeIndicator(life, getPlayerColor(username));
                 
                 div.innerHTML = `
                     <span style="color: ${getPlayerColor(username)};">●</span>
@@ -575,8 +669,10 @@
                     (${player.x}, ${player.y}) - 
                     <span style="color: ${player.isActive ? 'green' : 'gray'};">${status}</span>
                     ${!player.isActive && timeAgo ? ` - ${timeAgo}` : ''}
+                    <span style="margin-left: 10px;">Life: ${life}/4</span>
                 `;
                 
+                div.appendChild(lifeIndicator);
                 playersDiv.appendChild(div);
             });
         }
@@ -592,12 +688,26 @@
         
         function createPlayerElement(username, player) {
             const playerEl = document.createElement('div');
-            playerEl.className = `player ${player.isActive ? '' : 'inactive'}`;
+            const life = player.life || 4;
+            const color = getPlayerColor(username);
+            
+            playerEl.className = `player life-${life} ${player.isActive ? '' : 'inactive'}`;
             playerEl.style.left = `${player.x}px`;
             playerEl.style.top = `${player.y}px`;
-            playerEl.style.backgroundColor = getPlayerColor(username);
-            playerEl.textContent = player.username.charAt(0).toUpperCase();
-            playerEl.setAttribute('title', `${player.username} (${player.isActive ? 'Online' : 'Offline'})`);
+            playerEl.style.setProperty('--player-color', color);
+            playerEl.setAttribute('title', `${player.username} (${player.isActive ? 'Online' : 'Offline'}) - Life: ${life}/4`);
+            
+            // Create background for life indicator
+            const background = document.createElement('div');
+            background.className = 'player-background';
+            playerEl.appendChild(background);
+            
+            // Create content area
+            const content = document.createElement('div');
+            content.className = 'player-content';
+            content.textContent = player.username.charAt(0).toUpperCase();
+            playerEl.appendChild(content);
+            
             gameContainer.appendChild(playerEl);
             playerElements[username] = playerEl;
         }
@@ -605,10 +715,12 @@
         function updatePlayerElement(username, player) {
             if (playerElements[username]) {
                 const playerEl = playerElements[username];
+                const life = player.life || 4;
+                
                 playerEl.style.left = `${player.x}px`;
                 playerEl.style.top = `${player.y}px`;
-                playerEl.className = `player ${player.isActive ? '' : 'inactive'}`;
-                playerEl.setAttribute('title', `${player.username} (${player.isActive ? 'Online' : 'Offline'})`);
+                playerEl.className = `player life-${life} ${player.isActive ? '' : 'inactive'}`;
+                playerEl.setAttribute('title', `${player.username} (${player.isActive ? 'Online' : 'Offline'}) - Life: ${life}/4`);
                 
                 // Update speech bubble position if it exists
                 if (speechBubbles[username]) {
@@ -700,7 +812,8 @@
                     x: parseInt(el.style.left),
                     y: parseInt(el.style.top),
                     isActive: !el.classList.contains('inactive'),
-                    lastSeen: data.username === name ? data.lastSeen : Date.now()
+                    lastSeen: data.username === name ? data.lastSeen : Date.now(),
+                    life: data.username === name ? data.life : 4
                 };
             });
             
