@@ -50,7 +50,8 @@ io.on('connection', (socket) => {
         createdAt: Date.now(),
         lastSeen: Date.now(),
         lastMessage: null, // Store the last message
-        lastMessageTime: null // Store when the last message was sent
+        lastMessageTime: null, // Store when the last message was sent
+        life: 4, // Each player has a life which has four parts.
       };
     }
     
