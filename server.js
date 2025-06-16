@@ -15,25 +15,72 @@ const players = {}; // username -> player data
 const activeSockets = {}; // socketId -> username mapping
 const socketToUsername = {}; // socketId -> username for quick lookup
 
+// Door
+let isDoorVisible = false;
+let doorTimeout = null;
+
+function checkForDoorKeyword(message) {
+  const keywords = ['door', 'Door', 'DOOR'];
+  return keywords.some(keyword => message.includes(keyword));
+}
+
+function showDoor() {
+  if (!isDoorVisible) {
+    isDoorVisible = true;
+    io.emit('doorTriggered');
+    console.log('Door triggered by keyword');
+
+    // Auto-hide door after 30 seconds
+    if (doorTimeout) {
+      clearTimeout(doorTimeout);
+    }
+
+    doorTimeout = setTimeout(() => {
+      hideDoor();
+    }, 30000); // 30 seconds
+  }
+}
+
+function hideDoor() {
+  if (isDoorVisible) {
+    isDoorVisible = false;
+    io.emit('doorRemoved');
+    console.log('Door hidden');
+
+    if (doorTimeout) {
+      clearTimeout(doorTimeout);
+      doorTimeout = null;
+    }
+  }
+}
+
 io.on('connection', (socket) => {
   console.log('A user connected:', socket.id);
 
   // Handle player joining
   socket.on('playerJoin', (username) => {
     console.log(`Player ${username} attempting to join`);
-    
+
     // Check if username is already taken by an active player
     const isUsernameActive = Object.values(activeSockets).includes(username);
-    
+
     if (isUsernameActive) {
       socket.emit('joinError', 'Username is already taken by an active player');
       return;
     }
+
+     // Send the current state to the new player
+    socket.emit('gameState', players);
     
+    // Sync door state for new player
+    if (isDoorVisible) {
+        socket.emit('doorTriggered');
+    }
+
     // Store the socket-username mapping
     socketToUsername[socket.id] = username;
     activeSockets[socket.id] = username;
-    
+
     // If player exists, they're returning
     if (players[username]) {
       console.log(`Player ${username} returned to existing character`);
@@ -54,10 +101,10 @@ io.on('connection', (socket) => {
         life: 4, // Each player has a life which has four parts.
       };
     }
-    
+
     // Send the current state to the new player
     socket.emit('gameState', players);
-    
+
     // Send last messages from all players who have messages
     Object.keys(players).forEach(playerUsername => {
       if (players[playerUsername].lastMessage) {
@@ -68,7 +115,7 @@ io.on('connection', (socket) => {
         });
       }
     });
-    
+
     // Broadcast to all other players that a player joined/returned
     socket.broadcast.emit('playerStatusChanged', {
       username: username,
@@ -84,7 +131,7 @@ io.on('connection', (socket) => {
       players[username].x = position.x;
       players[username].y = position.y;
       players[username].lastSeen = Date.now();
-      
+
       // Broadcast the updated position to all players
       io.emit('playerMoved', {
         username: username,
@@ -94,42 +141,47 @@ io.on('connection', (socket) => {
   });
 
   // Handle chat messages
-  socket.on('chatMessage', (message) => {
+socket.on('chatMessage', (message) => {
     const username = socketToUsername[socket.id];
     if (username && players[username] && players[username].isActive && message.trim()) {
-      console.log(`Chat from ${username}: ${message}`);
-      
-      const trimmedMessage = message.trim();
-      players[username].lastSeen = Date.now();
-      
-      // Store the last message for this player
-      players[username].lastMessage = trimmedMessage;
-      players[username].lastMessageTime = Date.now();
-      
-      // Broadcast the message to all players
-      io.emit('chatMessage', {
-        username: username,
-        message: trimmedMessage
-      });
+        console.log(`Chat from ${username}: ${message}`);
+        
+        const trimmedMessage = message.trim();
+        players[username].lastSeen = Date.now();
+        
+        // Store the last message for this player
+        players[username].lastMessage = trimmedMessage;
+        players[username].lastMessageTime = Date.now();
+        
+        // Check for door keyword
+        if (checkForDoorKeyword(trimmedMessage)) {
+            showDoor();
+        }
+        
+        // Broadcast the message to all players
+        io.emit('chatMessage', {
+            username: username,
+            message: trimmedMessage
+        });
     }
-  });
+});
 
   // Handle disconnection
   socket.on('disconnect', () => {
     console.log('User disconnected:', socket.id);
-    
+
     const username = socketToUsername[socket.id];
     if (username && players[username]) {
       console.log(`Player ${username} went inactive (character remains)`);
-      
+
       // Mark player as inactive but keep their character
       players[username].isActive = false;
       players[username].lastSeen = Date.now();
-      
+
       // Clean up socket mappings
       delete activeSockets[socket.id];
       delete socketToUsername[socket.id];
-      
+
       // Notify all clients that a player went inactive
       io.emit('playerStatusChanged', {
         username: username,
@@ -143,7 +195,7 @@ io.on('connection', (socket) => {
   socket.on('cleanupOldPlayers', () => {
     const now = Date.now();
     const oneHour = 60 * 60 * 1000; // 1 hour in milliseconds
-    
+
     Object.keys(players).forEach(username => {
       if (!players[username].isActive && (now - players[username].lastSeen) > oneHour) {
         console.log(`Removing old inactive player: ${username}`);
@@ -154,11 +206,13 @@ io.on('connection', (socket) => {
   });
 });
 
+
+
 // Optional: Periodic cleanup of very old inactive players (runs every 30 minutes)
 setInterval(() => {
   const now = Date.now();
   const sixHours = 6 * 60 * 60 * 1000; // 6 hours in milliseconds
-  
+
   Object.keys(players).forEach(username => {
     if (!players[username].isActive && (now - players[username].lastSeen) > sixHours) {
       console.log(`Auto-removing old inactive player: ${username}`);
@@ -168,7 +222,17 @@ setInterval(() => {
   });
 }, 30 * 60 * 1000); // Run every 30 minutes
 
+
+
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 }); 
+
+process.on('SIGINT', () => {
+    console.log('Server shutting down...');
+    if (doorTimeout) {
+        clearTimeout(doorTimeout);
+    }
+    process.exit(0);
+});

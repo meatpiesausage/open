@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,7 +11,7 @@
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
             font-family: Arial, sans-serif;
             height: 100vh;
@@ -18,7 +19,7 @@
             display: flex;
             flex-direction: column;
         }
-        
+
         h1 {
             text-align: center;
             padding: 10px;
@@ -27,7 +28,7 @@
             border-bottom: 1px solid #dee2e6;
             flex-shrink: 0;
         }
-        
+
         #login-container {
             position: fixed;
             top: 50%;
@@ -40,7 +41,7 @@
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             z-index: 1000;
         }
-        
+
         #game-container {
             width: 100vw;
             height: 50vh;
@@ -50,7 +51,7 @@
             background-color: #f0f0f0;
             flex-shrink: 0;
         }
-        
+
         .player {
             position: absolute;
             width: 40px;
@@ -65,7 +66,7 @@
             transition: left 0.1s, top 0.1s;
             overflow: hidden;
         }
-        
+
         .player-background {
             position: absolute;
             width: 100%;
@@ -73,7 +74,7 @@
             border-radius: 50%;
             background: conic-gradient(from 0deg, transparent 0%, transparent 100%);
         }
-        
+
         .player-content {
             position: relative;
             z-index: 2;
@@ -84,37 +85,37 @@
             height: 100%;
             border-radius: 50%;
         }
-        
+
         /* Life indicator styles */
         .life-4 .player-background {
             background: conic-gradient(from -90deg, var(--player-color) 0%, var(--player-color) 100%);
         }
-        
+
         .life-3 .player-background {
             background: conic-gradient(from -90deg, var(--player-color) 0%, var(--player-color) 75%, #ddd 75%, #ddd 100%);
         }
-        
+
         .life-2 .player-background {
             background: conic-gradient(from -90deg, var(--player-color) 0%, var(--player-color) 50%, #ddd 50%, #ddd 100%);
         }
-        
+
         .life-1 .player-background {
             background: conic-gradient(from -90deg, var(--player-color) 0%, var(--player-color) 25%, #ddd 25%, #ddd 100%);
         }
-        
+
         .life-0 .player-background {
             background: #ddd;
         }
-        
+
         .player.inactive {
             opacity: 0.5;
             border: 2px dashed #666;
         }
-        
+
         .player.inactive .player-background {
             background: #ccc !important;
         }
-        
+
         .speech-bubble {
             position: absolute;
             background-color: white;
@@ -125,16 +126,16 @@
             word-wrap: break-word;
             font-size: 12px;
             z-index: 1000;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
             transform: translateX(-50%);
             opacity: 0;
             transition: opacity 0.3s ease;
         }
-        
+
         .speech-bubble.show {
             opacity: 1;
         }
-        
+
         .speech-bubble::after {
             content: '';
             position: absolute;
@@ -144,7 +145,7 @@
             border: 8px solid transparent;
             border-top-color: white;
         }
-        
+
         .speech-bubble::before {
             content: '';
             position: absolute;
@@ -155,13 +156,13 @@
             border-top-color: #333;
             z-index: -1;
         }
-        
+
         #error-message {
             color: red;
             margin-top: 10px;
             display: none;
         }
-        
+
         #bottom-section {
             height: 50vh;
             display: flex;
@@ -169,7 +170,7 @@
             overflow-y: auto;
             background-color: #f8f9fa;
         }
-        
+
         #controls {
             display: none;
             text-align: center;
@@ -178,7 +179,7 @@
             border-bottom: 1px solid #dee2e6;
             flex-shrink: 0;
         }
-        
+
         #controls button {
             margin: 3px;
             padding: 12px 16px;
@@ -195,16 +196,17 @@
             -ms-user-select: none;
             transition: background-color 0.1s;
         }
-        
+
         #controls button:hover {
             background-color: #0056b3;
         }
-        
-        #controls button:active, #controls button.pressed {
+
+        #controls button:active,
+        #controls button.pressed {
             background-color: #004494;
             transform: scale(0.95);
         }
-        
+
         #chat-container {
             display: none;
             padding: 15px;
@@ -212,7 +214,7 @@
             border-bottom: 1px solid #dee2e6;
             flex-shrink: 0;
         }
-        
+
         #chat-input {
             width: calc(100% - 80px);
             padding: 10px;
@@ -221,7 +223,7 @@
             border-radius: 4px;
             font-size: 14px;
         }
-        
+
         #send-button {
             padding: 10px 16px;
             background-color: #28a745;
@@ -231,23 +233,23 @@
             cursor: pointer;
             font-size: 14px;
         }
-        
+
         #send-button:hover {
             background-color: #218838;
         }
-        
+
         #players-list {
             display: none;
             padding: 15px;
             flex: 1;
             overflow-y: auto;
         }
-        
+
         #players-list h3 {
             margin-bottom: 10px;
             color: #333;
         }
-        
+
         .player-item {
             margin: 8px 0;
             padding: 8px;
@@ -256,13 +258,13 @@
             border: 1px solid #e9ecef;
             font-size: 14px;
         }
-        
+
         .player-item.inactive {
             opacity: 0.6;
             font-style: italic;
             background-color: #f8f9fa;
         }
-        
+
         .life-indicator {
             display: inline-block;
             width: 16px;
@@ -271,86 +273,116 @@
             margin-left: 5px;
             vertical-align: middle;
         }
-        
+
+        .door {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            width: 40px;
+            height: 60px;
+            background-color: #8B4513;
+            border: 2px solid #654321;
+            border-radius: 5px 5px 0 0;
+            z-index: 100;
+            display: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .door::before {
+            content: '';
+            position: absolute;
+            top: 25px;
+            right: 8px;
+            width: 4px;
+            height: 4px;
+            background-color: #FFD700;
+            border-radius: 50%;
+        }
+
+        .door.show {
+            display: block;
+            opacity: 1;
+        }
+
         /* Mobile optimizations */
         @media (max-width: 768px) {
             h1 {
                 font-size: 1rem;
                 padding: 8px;
             }
-            
+
             .player {
                 width: 35px;
                 height: 35px;
                 font-size: 12px;
             }
-            
+
             #controls {
                 padding: 10px;
             }
-            
+
             #controls button {
                 padding: 10px 14px;
                 margin: 2px;
                 font-size: 12px;
                 min-width: 50px;
             }
-            
+
             #chat-container {
                 padding: 10px;
             }
-            
+
             #chat-input {
                 width: calc(100% - 70px);
                 padding: 8px;
                 font-size: 12px;
             }
-            
+
             #send-button {
                 padding: 8px 12px;
                 font-size: 12px;
             }
-            
+
             #players-list {
                 padding: 10px;
             }
-            
+
             .player-item {
                 font-size: 12px;
                 padding: 6px;
             }
-            
+
             .speech-bubble {
                 max-width: 120px;
                 font-size: 11px;
                 padding: 6px 8px;
             }
-            
+
             .life-indicator {
                 width: 14px;
                 height: 14px;
             }
         }
-        
+
         /* Very small screens */
         @media (max-width: 480px) {
             h1 {
                 font-size: 0.9rem;
                 padding: 6px;
             }
-            
+
             .player {
                 width: 30px;
                 height: 30px;
                 font-size: 11px;
             }
-            
+
             #controls button {
                 padding: 8px 10px;
                 font-size: 11px;
                 min-width: 45px;
             }
-            
+
             .life-indicator {
                 width: 12px;
                 height: 12px;
@@ -358,17 +390,18 @@
         }
     </style>
 </head>
+
 <body>
     <h1>Socket.IO Game with Persistent Characters</h1>
-    
+
     <div id="login-container">
         <input type="text" id="username-input" placeholder="Enter your username">
         <button id="join-button">Join Game</button>
         <div id="error-message"></div>
     </div>
-    
+
     <div id="game-container" style="display: none;"></div>
-    
+
     <div id="bottom-section">
         <div id="controls" style="display: none;">
             <button id="up-button">↑</button><br>
@@ -376,12 +409,12 @@
             <button id="right-button">→</button><br>
             <button id="down-button">↓</button>
         </div>
-        
+
         <div id="chat-container">
             <input type="text" id="chat-input" placeholder="Type a message..." maxlength="100">
             <button id="send-button">Send</button>
         </div>
-        
+
         <div id="players-list" style="display: none;">
             <h3>Players:</h3>
             <div id="players"></div>
@@ -392,7 +425,7 @@
     <script>
         // Connect to Socket.IO server
         const socket = io();
-        
+
         // DOM Elements
         const loginContainer = document.getElementById('login-container');
         const gameContainer = document.getElementById('game-container');
@@ -405,7 +438,8 @@
         const usernameInput = document.getElementById('username-input');
         const joinButton = document.getElementById('join-button');
         const errorMessage = document.getElementById('error-message');
-        
+
+
         // Game variables
         let myUsername = null;
         let playerElements = {};
@@ -413,15 +447,16 @@
         const moveStep = 8;
         const moveInterval = 50; // milliseconds between moves when holding
         const playerColors = [
-            '#ff4d4d', '#4da6ff', '#4dff4d', '#ffff4d', 
+            '#ff4d4d', '#4da6ff', '#4dff4d', '#ffff4d',
             '#ff4dff', '#4dffc4', '#c44dff', '#ffa64d'
         ];
-        
+        let doorElement = null;
+
         // Movement state
         let movementInterval = null;
         let currentDirection = null;
         let isMoving = false;
-        
+
         // Hash function to consistently assign colors to usernames
         function hashCode(str) {
             let hash = 0;
@@ -432,15 +467,15 @@
             }
             return Math.abs(hash);
         }
-        
+
         function getPlayerColor(username) {
             return playerColors[hashCode(username) % playerColors.length];
         }
-        
+
         function createLifeIndicator(life, color) {
             const indicator = document.createElement('div');
             indicator.className = 'life-indicator';
-            
+
             let gradientStops;
             switch (life) {
                 case 4:
@@ -459,56 +494,56 @@
                     gradientStops = '#ddd';
                     break;
             }
-            
+
             indicator.style.background = gradientStops;
             return indicator;
         }
-        
+
         // Movement functions
         function startMovement(direction) {
             if (isMoving && currentDirection === direction) return;
-            
+
             stopMovement();
             currentDirection = direction;
             isMoving = true;
-            
+
             // Add pressed class for visual feedback
             const buttonId = direction + '-button';
             document.getElementById(buttonId).classList.add('pressed');
-            
+
             // Move immediately
             movePlayer(direction);
-            
+
             // Set up continuous movement
             movementInterval = setInterval(() => {
                 movePlayer(direction);
             }, moveInterval);
         }
-        
+
         function stopMovement() {
             if (movementInterval) {
                 clearInterval(movementInterval);
                 movementInterval = null;
             }
-            
+
             // Remove pressed class from all buttons
             ['up', 'down', 'left', 'right'].forEach(dir => {
                 document.getElementById(dir + '-button').classList.remove('pressed');
             });
-            
+
             currentDirection = null;
             isMoving = false;
         }
-        
+
         function movePlayer(direction) {
             if (!playerElements[myUsername]) return;
-            
+
             const player = playerElements[myUsername];
             const currentX = parseInt(player.style.left);
             const currentY = parseInt(player.style.top);
-            
+
             let deltaX = 0, deltaY = 0;
-            
+
             switch (direction) {
                 case 'up':
                     deltaY = -moveStep;
@@ -523,21 +558,21 @@
                     deltaX = moveStep;
                     break;
             }
-            
+
             let newX = Math.max(20, Math.min(gameContainer.clientWidth - 20, currentX + deltaX));
             let newY = Math.max(20, Math.min(gameContainer.clientHeight - 20, currentY + deltaY));
-            
+
             player.style.left = `${newX}px`;
             player.style.top = `${newY}px`;
-            
+
             // Update speech bubble position if it exists
             if (speechBubbles[myUsername]) {
                 updateSpeechBubblePosition(myUsername, newX, newY);
             }
-            
+
             socket.emit('updatePosition', { x: newX, y: newY });
         }
-        
+
         // Join the game
         joinButton.addEventListener('click', () => {
             const username = usernameInput.value.trim();
@@ -546,13 +581,13 @@
                 errorMessage.style.display = 'none';
             }
         });
-        
+
         // Handle join errors
         socket.on('joinError', (message) => {
             errorMessage.textContent = message;
             errorMessage.style.display = 'block';
         });
-        
+
         // Chat functionality
         function sendMessage() {
             const message = chatInput.value.trim();
@@ -561,63 +596,63 @@
                 chatInput.value = '';
             }
         }
-        
+
         sendButton.addEventListener('click', sendMessage);
         chatInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 sendMessage();
             }
         });
-        
+
         // Movement controls - Mouse events
         document.getElementById('up-button').addEventListener('mousedown', () => startMovement('up'));
         document.getElementById('down-button').addEventListener('mousedown', () => startMovement('down'));
         document.getElementById('left-button').addEventListener('mousedown', () => startMovement('left'));
         document.getElementById('right-button').addEventListener('mousedown', () => startMovement('right'));
-        
+
         // Stop movement on mouse up or leave
         ['up', 'down', 'left', 'right'].forEach(direction => {
             const button = document.getElementById(direction + '-button');
             button.addEventListener('mouseup', stopMovement);
             button.addEventListener('mouseleave', stopMovement);
         });
-        
+
         // Touch events for mobile
         ['up', 'down', 'left', 'right'].forEach(direction => {
             const button = document.getElementById(direction + '-button');
-            
+
             button.addEventListener('touchstart', (e) => {
                 e.preventDefault();
                 startMovement(direction);
             });
-            
+
             button.addEventListener('touchend', (e) => {
                 e.preventDefault();
                 stopMovement();
             });
-            
+
             button.addEventListener('touchcancel', (e) => {
                 e.preventDefault();
                 stopMovement();
             });
         });
-        
+
         // Global mouse up to ensure movement stops if mouse is released outside button
         document.addEventListener('mouseup', stopMovement);
-        
+
         // Keyboard controls
         let pressedKeys = {};
-        
+
         document.addEventListener('keydown', (e) => {
             if (!myUsername) return;
-            
+
             // Don't move if user is typing in chat or username
             if (document.activeElement === chatInput || document.activeElement === usernameInput) return;
-            
+
             // Prevent repeating keydown events
             if (pressedKeys[e.key]) return;
             pressedKeys[e.key] = true;
-            
+
             switch (e.key) {
                 case 'ArrowUp':
                     startMovement('up');
@@ -633,10 +668,10 @@
                     break;
             }
         });
-        
+
         document.addEventListener('keyup', (e) => {
             pressedKeys[e.key] = false;
-            
+
             switch (e.key) {
                 case 'ArrowUp':
                 case 'ArrowDown':
@@ -646,23 +681,23 @@
                     break;
             }
         });
-        
+
         // Stop movement when window loses focus
         window.addEventListener('blur', stopMovement);
-        
+
         function updatePlayersList(players) {
             playersDiv.innerHTML = '';
             Object.keys(players).forEach((username) => {
                 const player = players[username];
                 const div = document.createElement('div');
                 div.className = `player-item ${player.isActive ? '' : 'inactive'}`;
-                
+
                 const status = player.isActive ? 'Online' : 'Offline';
                 const timeAgo = player.lastSeen ? getTimeAgo(player.lastSeen) : '';
                 const life = player.life || 4;
-                
+
                 const lifeIndicator = createLifeIndicator(life, getPlayerColor(username));
-                
+
                 div.innerHTML = `
                     <span style="color: ${getPlayerColor(username)};">●</span>
                     <strong>${player.username}</strong> 
@@ -671,12 +706,12 @@
                     ${!player.isActive && timeAgo ? ` - ${timeAgo}` : ''}
                     <span style="margin-left: 10px;">Life: ${life}/4</span>
                 `;
-                
+
                 div.appendChild(lifeIndicator);
                 playersDiv.appendChild(div);
             });
         }
-        
+
         function getTimeAgo(timestamp) {
             const seconds = Math.floor((Date.now() - timestamp) / 1000);
             if (seconds < 60) return `${seconds}s ago`;
@@ -685,114 +720,119 @@
             const hours = Math.floor(minutes / 60);
             return `${hours}h ago`;
         }
-        
+
         function createPlayerElement(username, player) {
             const playerEl = document.createElement('div');
             const life = player.life || 4;
             const color = getPlayerColor(username);
-            
+
             playerEl.className = `player life-${life} ${player.isActive ? '' : 'inactive'}`;
             playerEl.style.left = `${player.x}px`;
             playerEl.style.top = `${player.y}px`;
             playerEl.style.setProperty('--player-color', color);
             playerEl.setAttribute('title', `${player.username} (${player.isActive ? 'Online' : 'Offline'}) - Life: ${life}/4`);
-            
+
             // Create background for life indicator
             const background = document.createElement('div');
             background.className = 'player-background';
             playerEl.appendChild(background);
-            
+
             // Create content area
             const content = document.createElement('div');
             content.className = 'player-content';
             content.textContent = player.username.charAt(0).toUpperCase();
             playerEl.appendChild(content);
-            
+
             gameContainer.appendChild(playerEl);
             playerElements[username] = playerEl;
         }
-        
+
         function updatePlayerElement(username, player) {
             if (playerElements[username]) {
                 const playerEl = playerElements[username];
                 const life = player.life || 4;
-                
+
                 playerEl.style.left = `${player.x}px`;
                 playerEl.style.top = `${player.y}px`;
                 playerEl.className = `player life-${life} ${player.isActive ? '' : 'inactive'}`;
                 playerEl.setAttribute('title', `${player.username} (${player.isActive ? 'Online' : 'Offline'}) - Life: ${life}/4`);
-                
+
                 // Update speech bubble position if it exists
                 if (speechBubbles[username]) {
                     updateSpeechBubblePosition(username, player.x, player.y);
                 }
             }
         }
-        
+
         function createSpeechBubble(username, message) {
             // Remove existing speech bubble if any
             if (speechBubbles[username]) {
                 gameContainer.removeChild(speechBubbles[username]);
                 delete speechBubbles[username];
             }
-            
+
             const player = playerElements[username];
             if (!player) return;
-            
+
             const bubble = document.createElement('div');
             bubble.className = 'speech-bubble';
             bubble.textContent = message;
-            
+
             const playerX = parseInt(player.style.left);
             const playerY = parseInt(player.style.top);
-            
+
             bubble.style.left = `${playerX}px`;
             bubble.style.top = `${playerY - 60}px`;
-            
+
             gameContainer.appendChild(bubble);
             speechBubbles[username] = bubble;
-            
+
             // Show the bubble with animation
             setTimeout(() => {
                 bubble.classList.add('show');
             }, 10);
         }
-        
+
         function updateSpeechBubblePosition(username, x, y) {
             if (speechBubbles[username]) {
                 speechBubbles[username].style.left = `${x}px`;
                 speechBubbles[username].style.top = `${y - 60}px`;
             }
         }
-        
+
         // Socket events
         socket.on('gameState', (players) => {
             // Store my username
             myUsername = usernameInput.value.trim();
-            
+
             // Show game UI
             loginContainer.style.display = 'none';
             gameContainer.style.display = 'block';
             controls.style.display = 'block';
             chatContainer.style.display = 'block';
             playersList.style.display = 'block';
-            
+
             // Clear game container
             gameContainer.innerHTML = '';
             playerElements = {};
             speechBubbles = {};
-            
+
             // Create player elements
             Object.keys(players).forEach((username) => {
                 createPlayerElement(username, players[username]);
             });
-            
+
+            // Reset door state when joining game
+            if (doorElement) {
+                removeDoor();
+            }
+
             updatePlayersList(players);
         });
-        
+
         socket.on('playerStatusChanged', (data) => {
             const { username, action } = data;
-            
+
             if (action === 'joined') {
                 if (!playerElements[username]) {
                     createPlayerElement(username, data);
@@ -802,7 +842,7 @@
             } else if (action === 'left') {
                 updatePlayerElement(username, data);
             }
-            
+
             // Update the players list with current state
             const currentPlayers = {};
             Object.keys(playerElements).forEach(name => {
@@ -816,13 +856,13 @@
                     life: data.username === name ? data.life : 4
                 };
             });
-            
+
             updatePlayersList(currentPlayers);
         });
-        
+
         socket.on('playerMoved', (player) => {
             updatePlayerElement(player.username, player);
-            
+
             // Update players list (simplified - just update positions)
             const playerItem = document.querySelector(`.player-item:has(strong:contains("${player.username}"))`);
             if (playerItem) {
@@ -832,18 +872,18 @@
                 );
             }
         });
-        
+
         socket.on('playerRemoved', (username) => {
             if (playerElements[username]) {
                 gameContainer.removeChild(playerElements[username]);
                 delete playerElements[username];
-                
+
                 // Remove speech bubble if it exists
                 if (speechBubbles[username]) {
                     gameContainer.removeChild(speechBubbles[username]);
                     delete speechBubbles[username];
                 }
-                
+
                 // Remove from players list
                 const playerItem = document.querySelector(`.player-item:has(strong:contains("${username}"))`);
                 if (playerItem) {
@@ -851,10 +891,61 @@
                 }
             }
         });
-        
+
         socket.on('chatMessage', (data) => {
             createSpeechBubble(data.username, data.message);
+
+            // Check for door keyword
+            if (checkForDoorKeyword(data.message)) {
+                createDoor();
+            }
+
         });
+
+        function createDoor() {
+            if (doorElement) return; // Door already exists
+
+            doorElement = document.createElement('div');
+            doorElement.className = 'door';
+            gameContainer.appendChild(doorElement);
+
+            // Show the door with animation
+            setTimeout(() => {
+                doorElement.classList.add('show');
+            }, 10);
+
+            console.log('Door appeared!');
+        }
+
+        function removeDoor() {
+            if (doorElement) {
+                doorElement.classList.remove('show');
+                setTimeout(() => {
+                    if (doorElement && doorElement.parentNode) {
+                        gameContainer.removeChild(doorElement);
+                        doorElement = null;
+                    }
+                }, 300); // Wait for fade out animation
+                console.log('Door disappeared!');
+            }
+        }
+
+        function checkForDoorKeyword(message) {
+            const keywords = ['door', 'Door', 'DOOR'];
+            return keywords.some(keyword => message.includes(keyword));
+        }
+
+        socket.on('doorTriggered', () => {
+            createDoor();
+        });
+
+        socket.on('doorRemoved', () => {
+            removeDoor();
+        });
+
+
+
     </script>
 </body>
+
 </html>
