@@ -26,6 +26,19 @@ screen set to take up the top half of the screen including:
 
 Holding movement keys down means that the player continually moves. 
 Also added persistent messages.
+magic door. 
+
+## Journey
+
+- User makes a door appear.
+- User needs a key, how do they know? A big key hole?
+- Ask for a key and three appear, try each one and when they have the right one the screen goes black once they touch the door.
+- Pick a key up and take it to a door it won't work. At some point the user will realise they can carry three keys at once and then have to picked up in a particular order.
+
+## Dev Chat
+
+- Door is an object that requires an interaction and can not be carried. 
+- Key is an object that requires an interaction and can be carried. 
 
 ## Requests
 Make the player area fit the screen.

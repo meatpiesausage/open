@@ -19,6 +19,12 @@ const socketToUsername = {}; // socketId -> username for quick lookup
 let isDoorVisible = false;
 let doorTimeout = null;
 
+// Objects
+// Solid objects that can't be moved
+// Interactive Objects that the user interacts with
+// Movable Objects that the user can pick up.
+const objects = [] 
+
 function checkForDoorKeyword(message) {
   const keywords = ['door', 'Door', 'DOOR'];
   return keywords.some(keyword => message.includes(keyword));
