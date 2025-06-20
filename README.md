@@ -14,19 +14,30 @@ npm start
 
 ## Recent Changes
 
-on-screen buttons for player control
-text entry and speech bubbles for each player
-screen set to take up the top half of the screen including:
-    Mobile-Specific Improvements:
-    Smaller player circles and buttons on mobile devices
-    Adjusted font sizes for better readability
-    Optimized touch targets for mobile interaction
-    Better spacing and padding for mobile screens
-    Arrow symbols (↑←→↓) for direction buttons to save space
+- on-screen buttons for player control
+- text entry and speech bubbles for each player
+- screen set to take up the top half of the screen including:
+    - Mobile-Specific Improvements:
+    - Smaller player circles and buttons on mobile devices
+    - Adjusted font sizes for better readability
+    - Optimized touch targets for mobile interaction
+    - Better spacing and padding for mobile screens
+    - Arrow symbols (↑←→↓) for direction buttons to save space
 
-Holding movement keys down means that the player continually moves. 
-Also added persistent messages.
-magic door. 
+- Holding movement keys down means that the player continually moves. 
+- Also added persistent messages.
+- magic door.
+- Collision Detection: Checks if a player is touching the door using circle-rectangle collision detection
+- Interaction Cooldown: Prevents spam interactions (1 second cooldown per player)
+- Visual Feedback:
+
+- Door glows when interacted with
+- Door scales up briefly when any player interacts
+- Floating text shows interaction messages
+
+- Real-time Updates: Shows when other players interact with the door
+
+- Broadcasting: All players see when someone interacts with the door
 
 ## Journey
 
